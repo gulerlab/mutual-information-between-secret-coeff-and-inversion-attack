@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import poly_coefficients, finite_field_division, pol_mul_mod
+from .utils import poly_coefficients, finite_field_division, pol_mul_mod
 
 
 # lagrange coded computing polynomial
