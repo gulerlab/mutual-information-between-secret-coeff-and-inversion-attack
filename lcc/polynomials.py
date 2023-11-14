@@ -15,21 +15,26 @@ class Poly(object):
         return self.__coefficients
 
     def __call__(self, evaluation_point, *args, **kwargs):
-        return np.sum(
-            np.asarray([evaluation_point ** i for i in range(len(self.__coefficients))]) * self.__coefficients) % self.p
+        if len(self.__coefficients.shape) < 2:
+            return np.sum(np.asarray([evaluation_point ** i for i in range(len(self.__coefficients))])
+                          * self.__coefficients) % self.p
+        else:
+            return np.sum(np.asarray([evaluation_point ** i * self.__coefficients[i] for i in
+                                      range(len(self.__coefficients))]), axis=0) % self.p
 
     def __mul__(self, other):
         return Poly(pol_mul_mod(self.__coefficients, other.coefficients, self.p), self.p)
 
 
 class LCCPoly(object):
-    def __init__(self, beta_arr, secret_arr, K, T, p):
+    def __init__(self, beta_arr, secret_arr, K, T, p, size=None):
         self.K = K
         self.T = T
         self.p = p
         self.beta_arr = beta_arr
         self.secret_arr = secret_arr
         self.degree = K + T - 1
+        self.size = size
 
         self._random_arr = []
         self.__fill_random_arr()
@@ -38,7 +43,7 @@ class LCCPoly(object):
 
     def __fill_random_arr(self):
         for j in range(self.K, self.K + self.T):
-            self._random_arr.append(np.random.randint(0, high=self.p))
+            self._random_arr.append(np.random.randint(0, high=self.p, size=self.size))
 
     @property
     def random_arr(self):
