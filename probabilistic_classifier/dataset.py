@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from sklearn.neighbors import NearestNeighbors
 
 
 def create_probabilistic_classifier_dataset_gaussian(mean, cov, num_of_samples):
@@ -30,14 +31,6 @@ def create_test_dataset_gaussian(mean, cov, num_of_samples):
     return np.random.multivariate_normal(mean=mean, cov=cov, size=num_of_samples)
 
 
-def create_probabilistic_classifier_dataset_for_conditional_mutual_information_gaussian():
-    pass
-
-
-def create_probabilistic_classifier_for_knn_approach_gaussian():
-    pass
-
-
 def create_train_test_split(data, label, train_test_ratio=0.8):
     train_size = int(data.shape[0] * train_test_ratio)
     train_data, train_label = data[list(range(train_size))], label[list(range(train_size))]
@@ -50,7 +43,62 @@ def create_batched_tensors(data, label, batch_size):
     return torch.split(data, batch_size), torch.split(label, batch_size)
 
 
-def create_batched_tensors_train_test(train_data, train_label, test_data, test_label, train_batch_size, test_batch_size):
+def create_batched_tensors_train_test(train_data, train_label, test_data, test_label, train_batch_size,
+                                      test_batch_size):
     train_data, train_label = torch.from_numpy(train_data), torch.from_numpy(train_label)
     test_data, test_label = torch.from_numpy(test_data), torch.from_numpy(test_label)
-    return torch.split(train_data, train_batch_size), torch.split(train_label, train_batch_size), torch.split(test_data, test_batch_size), torch.split(test_label, test_batch_size)
+    return (torch.split(train_data, train_batch_size), torch.split(train_label, train_batch_size),
+            torch.split(test_data, test_batch_size), torch.split(test_label, test_batch_size))
+
+
+######### KNN SAMPLING DATASET ##################
+def create_knn_sampling_joint_cond_marginal_dataset(dataset, number_of_neighbors, x_idx, y_idx, z_idx):
+    # joint: 0, conditional marginal: 1
+    # conditional marginal dataset construction
+    ## select N / kNN samples to train kNN classifier
+    number_of_samples = dataset.shape[0]
+    x_data = dataset[:, x_idx]
+    y_data = dataset[:, y_idx]
+    z_data = dataset[:, z_idx]
+
+    if len(x_data.shape) < 2:
+        x_data = x_data.reshape(-1, 1)
+
+    if len(y_data.shape) < 2:
+        y_data = y_data.reshape(-1, 1)
+
+    if len(z_data.shape) < 2:
+        z_data = z_data.reshape(-1, 1)
+
+    ## train and rest idx
+    selected_samples = np.random.choice(number_of_samples, int(number_of_samples // number_of_neighbors), replace=False)
+    rest_of_samples = np.arange(number_of_samples, dtype=int)
+    rest_of_samples_mask = [x for x in range(number_of_samples) if x not in selected_samples]
+    rest_of_samples = rest_of_samples[rest_of_samples_mask]
+
+    ## train knn model
+    knn_model = NearestNeighbors(n_neighbors=number_of_neighbors, metric='euclidean')
+    knn_model.fit(z_data[rest_of_samples, :])
+
+    ## get indices based on selected z
+    knn_x_idx = knn_model.kneighbors(z_data[selected_samples, :], return_distance=False)
+    knn_x_idx = np.concatenate(knn_x_idx).reshape(-1)
+
+    ## adjust the idx set for selected data
+    selected_samples = np.stack([selected_samples for _ in range(number_of_neighbors)]).T
+    selected_samples = selected_samples.reshape(-1)
+
+    ## concat data
+    cond_marginal_data = np.concatenate([x_data[knn_x_idx, :], y_data[selected_samples, :],
+                                        z_data[selected_samples, :]], axis=1)
+
+    ## cond marginal data label
+    cond_marginal_label = np.ones(cond_marginal_data.shape[0])
+
+    # joint dataset construction
+    joint_data = dataset
+
+    ## joint data label
+    joint_label = np.zeros(joint_data.shape[0])
+
+    return joint_data, joint_label, cond_marginal_data, cond_marginal_label
