@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from sklearn.neighbors import NearestNeighbors
+from probabilistic_classifier.sampling import knn_sampling, marginal_sampling
 
 
 def create_probabilistic_classifier_dataset_gaussian(mean, cov, num_of_samples):
@@ -70,23 +70,7 @@ def create_knn_sampling_joint_cond_marginal_dataset(dataset, number_of_neighbors
     if len(z_data.shape) < 2:
         z_data = z_data.reshape(-1, 1)
 
-    ## train and rest idx
-    selected_samples = np.random.choice(number_of_samples, int(number_of_samples // number_of_neighbors), replace=False)
-    rest_of_samples = np.arange(number_of_samples, dtype=int)
-    rest_of_samples_mask = [x for x in range(number_of_samples) if x not in selected_samples]
-    rest_of_samples = rest_of_samples[rest_of_samples_mask]
-
-    ## train knn model
-    knn_model = NearestNeighbors(n_neighbors=number_of_neighbors, metric='euclidean')
-    knn_model.fit(z_data[rest_of_samples, :])
-
-    ## get indices based on selected z
-    knn_x_idx = knn_model.kneighbors(z_data[selected_samples, :], return_distance=False)
-    knn_x_idx = np.concatenate(knn_x_idx).reshape(-1)
-
-    ## adjust the idx set for selected data
-    selected_samples = np.stack([selected_samples for _ in range(number_of_neighbors)]).T
-    selected_samples = selected_samples.reshape(-1)
+    selected_samples, knn_x_idx = knn_sampling(number_of_samples, number_of_neighbors, z_data)
 
     ## concat data
     cond_marginal_data = np.concatenate([x_data[knn_x_idx, :], y_data[selected_samples, :],
@@ -102,3 +86,34 @@ def create_knn_sampling_joint_cond_marginal_dataset(dataset, number_of_neighbors
     joint_label = np.zeros(joint_data.shape[0])
 
     return joint_data, joint_label, cond_marginal_data, cond_marginal_label
+
+
+######### MARGINAL SAMPLING DATASET ##################
+def create_joint_marginal_dataset(dataset, x_idx, y_idx):
+    # joint: 0, marginal: 1
+    # marginal dataset construction
+    number_of_samples = dataset.shape[0]
+    x_data = dataset[:, x_idx]
+    y_data = dataset[:, y_idx]
+
+    if len(x_data.shape) < 2:
+        x_data = x_data.reshape(-1, 1)
+
+    if len(y_data.shape) < 2:
+        y_data = y_data.reshape(-1, 1)
+
+    selected_x_idx, selected_y_idx = marginal_sampling(number_of_samples)
+
+    ## concat data samples
+    marginal_data = np.concatenate([x_data[selected_x_idx, :], y_data[selected_y_idx, :]], axis=1)
+
+    ## create labels
+    marginal_label = np.ones(number_of_samples)
+
+    # joint dataset construction
+    joint_data = dataset
+
+    ## create labels
+    joint_label = np.zeros(number_of_samples)
+
+    return joint_data, joint_label, marginal_data, marginal_label
