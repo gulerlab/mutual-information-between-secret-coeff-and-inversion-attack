@@ -103,3 +103,58 @@ def train_binary_classifier_v2(data, label, num_input_features, hidden_size_arr,
                 curr_inner_running_loss_avg = 0
 
     return model, inner_running_loss, inner_running_loss_avg, num_of_joint, num_of_marginal
+
+
+def train_multiclass_classifier(data, label, num_input_features, hidden_size_arr, lr,
+                                number_of_epoch, batch_size, outer_iter, save_avg=100, print_progress=True):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    num_output_features = 4
+    model = ProbabilisticClassifier(num_input_features, hidden_size_arr, num_output_features).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = Adam(model.parameters(), lr=lr)
+
+    ## train classifier
+    model.train()
+    inner_running_loss = []
+    inner_running_loss_avg = []
+
+    num_of_joint = 0
+    num_of_all_marginal = 0
+    num_of_marginal_y_joint_xz = 0
+    num_of_marginal_x_joint_yz = 0
+    for epoch in range(number_of_epoch):
+        batch_idx_tuple = torch.split(torch.from_numpy(np.random.permutation(np.arange(data.shape[0]))), batch_size)
+        curr_inner_running_loss_avg = 0
+        for batch_idx, selected_samples in enumerate(batch_idx_tuple):
+            batch_data, batch_label = data[selected_samples], label[selected_samples]
+            batch_data, batch_label = torch.from_numpy(batch_data).to(torch.float32), torch.from_numpy(batch_label).to(
+                torch.long)
+            num_of_joint += torch.count_nonzero(batch_label == 0)
+            num_of_all_marginal += torch.count_nonzero(batch_label == 1)
+            num_of_marginal_y_joint_xz += torch.count_nonzero(batch_label == 2)
+            num_of_marginal_x_joint_yz += torch.count_nonzero(batch_label == 3)
+
+            batch_label = one_hot(batch_label, num_classes=num_output_features).to(torch.float32)
+            batch_data, batch_label = batch_data.to(device), batch_label.to(device)
+
+            optimizer.zero_grad()
+            logits = model(batch_data)
+            loss = criterion(logits, batch_label)
+            loss.backward()
+            optimizer.step()
+
+            inner_running_loss.append(loss.item())
+            curr_inner_running_loss_avg += loss.item()
+
+            if batch_idx == 0 or ((batch_idx + 1) % save_avg) == 0:
+                if batch_idx > 0:
+                    curr_inner_running_loss_avg = curr_inner_running_loss_avg / save_avg
+                if print_progress:
+                    print(
+                        f'trial: {outer_iter + 1}, epoch, {epoch + 1}, iter: {batch_idx + 1}, curr loss: {loss.item()},'
+                        f' avg loss: {curr_inner_running_loss_avg}')
+                inner_running_loss_avg.append(curr_inner_running_loss_avg)
+                curr_inner_running_loss_avg = 0
+
+    return (model, inner_running_loss, inner_running_loss_avg, num_of_joint, num_of_all_marginal,
+            num_of_marginal_y_joint_xz, num_of_marginal_x_joint_yz)

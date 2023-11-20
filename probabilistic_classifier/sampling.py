@@ -28,3 +28,18 @@ def marginal_sampling(number_of_samples):
     x_idx = np.random.permutation(np.arange(number_of_samples))
     y_idx = np.random.permutation(np.arange(number_of_samples))
     return x_idx, y_idx
+
+
+def multiclass_conditional_sampling(number_of_samples):
+    all_marginal_idx_x = np.random.permutation(np.arange(number_of_samples))
+    all_marginal_idx_y = np.random.permutation(np.arange(number_of_samples))
+    all_marginal_idx_z = np.random.permutation(np.arange(number_of_samples))
+
+    marginal_y_joint_xz_y = np.random.permutation(np.arange(number_of_samples))
+    marginal_y_joint_xz_xz = np.random.permutation(np.arange(number_of_samples))
+
+    marginal_x_joint_yz_x = np.random.permutation(np.arange(number_of_samples))
+    marginal_x_joint_yz_yz = np.random.permutation(np.arange(number_of_samples))
+
+    return ((all_marginal_idx_x, all_marginal_idx_y, all_marginal_idx_z),
+            (marginal_y_joint_xz_y, marginal_y_joint_xz_xz), (marginal_x_joint_yz_x, marginal_x_joint_yz_yz))

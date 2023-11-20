@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from probabilistic_classifier.sampling import knn_sampling, marginal_sampling
+from probabilistic_classifier.sampling import knn_sampling, marginal_sampling, multiclass_conditional_sampling
 
 
 def create_probabilistic_classifier_dataset_gaussian(mean, cov, num_of_samples):
@@ -117,3 +117,64 @@ def create_joint_marginal_dataset(dataset, x_idx, y_idx):
     joint_label = np.zeros(number_of_samples)
 
     return joint_data, joint_label, marginal_data, marginal_label
+
+
+######### MULTICLASS CONDITIONAL DATASET ##################
+def create_multiclass_conditional_dataset(dataset, x_idx, y_idx, z_idx):
+    # joint: 0, all marginal: 1, marginal y joint xz: 2, marginal x joint yz
+    # marginal dataset construction
+    number_of_samples = dataset.shape[0]
+    x_data = dataset[:, x_idx]
+    y_data = dataset[:, y_idx]
+    z_data = dataset[:, z_idx]
+
+    if len(x_data.shape) < 2:
+        x_data = x_data.reshape(-1, 1)
+
+    if len(y_data.shape) < 2:
+        y_data = y_data.reshape(-1, 1)
+
+    if len(z_data.shape) < 2:
+        z_data = z_data.reshape(-1, 1)
+
+    all_marginal, marginal_y_joint_xz, marginal_x_joint_yz = multiclass_conditional_sampling(number_of_samples)
+
+    # all marginal
+    selected_x_idx, selected_y_idx, selected_z_idx = all_marginal
+    ## concat data samples
+    all_marginal_data = np.concatenate([x_data[selected_x_idx, :], y_data[selected_y_idx, :],
+                                        z_data[selected_y_idx, :]], axis=1)
+
+    ## create labels
+    all_marginal_label = np.ones(number_of_samples)
+
+    # marginal y joint xz
+    selected_y_idx, selected_xz_idx = marginal_y_joint_xz
+
+    ## concat data samples
+    marginal_y_joint_xz_data = np.concatenate([x_data[selected_xz_idx, :], y_data[selected_y_idx, :],
+                                               z_data[selected_xz_idx, :]], axis=1)
+
+    ## create labels
+    marginal_y_joint_xz_label = np.empty(number_of_samples, dtype=int)
+    marginal_y_joint_xz_label.fill(2)
+
+    # marginal y joint xz
+    selected_x_idx, selected_yz_idx = marginal_x_joint_yz
+
+    ## concat data samples
+    marginal_x_joint_yz_data = np.concatenate([x_data[selected_x_idx, :], y_data[selected_yz_idx, :],
+                                               z_data[selected_yz_idx, :]], axis=1)
+
+    ## create labels
+    marginal_x_joint_yz_label = np.empty(number_of_samples, dtype=int)
+    marginal_x_joint_yz_label.fill(3)
+
+    # joint dataset construction
+    joint_data = dataset
+
+    ## create labels
+    joint_label = np.zeros(number_of_samples)
+
+    return (joint_data, joint_label, all_marginal_data, all_marginal_label, marginal_y_joint_xz_data,
+            marginal_y_joint_xz_label, marginal_x_joint_yz_data, marginal_x_joint_yz_label)
