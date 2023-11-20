@@ -1,5 +1,6 @@
 import numpy as np
 import galois
+import numbers
 
 
 # utils
@@ -19,9 +20,22 @@ def poly_coefficients(evaluated_points, evaluation_points, p):
     vander_matrix = galois_field(vander_matrix)
     inv_vander_matrix = np.linalg.inv(vander_matrix)
 
-    evaluated_points_in_field = galois_field(np.asarray(evaluated_points)[:, np.newaxis])
+    if isinstance(evaluated_points[0], numbers.Number):
+        evaluated_points_in_field = galois_field(np.asarray(evaluated_points)[:, np.newaxis])
+        return np.asarray([x for x in np.squeeze(inv_vander_matrix @ evaluated_points_in_field)])
+    else:
+        evaluated_points_in_field = np.asarray(evaluated_points)
+        num_of_evaluations, dim_0, dim_1 = evaluated_points_in_field.shape
+        evaluated_points_in_field = galois_field(evaluated_points_in_field.reshape(num_of_evaluations, -1))
+        inverted_coefficients = np.squeeze(inv_vander_matrix @ evaluated_points_in_field).reshape(num_of_evaluations,
+                                                                                                  dim_0, dim_1)
+        resulting_coefficients = np.empty(inverted_coefficients.shape)
+        for i in range(inverted_coefficients.shape[0]):
+            for j in range(inverted_coefficients.shape[1]):
+                for k in range(inverted_coefficients.shape[2]):
+                    resulting_coefficients[i, j, k] = inverted_coefficients[i, j, k].item()
 
-    return np.asarray([x for x in np.squeeze(inv_vander_matrix @ evaluated_points_in_field)])
+        return resulting_coefficients
 
 
 def pol_mul_mod(first, second, prime):
