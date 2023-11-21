@@ -106,7 +106,8 @@ def train_binary_classifier_v2(data, label, num_input_features, hidden_size_arr,
 
 
 def train_multiclass_classifier(data, label, num_input_features, hidden_size_arr, lr,
-                                number_of_epoch, batch_size, outer_iter, save_avg=100, print_progress=True):
+                                number_of_epoch, batch_size, outer_iter, save_avg=100, print_progress=True,
+                                validate=False):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     num_output_features = 4
     model = ProbabilisticClassifier(num_input_features, hidden_size_arr, num_output_features).to(device)
@@ -134,7 +135,6 @@ def train_multiclass_classifier(data, label, num_input_features, hidden_size_arr
             num_of_marginal_y_joint_xz += torch.count_nonzero(batch_label == 2)
             num_of_marginal_x_joint_yz += torch.count_nonzero(batch_label == 3)
 
-            batch_label = one_hot(batch_label, num_classes=num_output_features).to(torch.float32)
             batch_data, batch_label = batch_data.to(device), batch_label.to(device)
 
             optimizer.zero_grad()
@@ -155,6 +155,22 @@ def train_multiclass_classifier(data, label, num_input_features, hidden_size_arr
                         f' avg loss: {curr_inner_running_loss_avg}')
                 inner_running_loss_avg.append(curr_inner_running_loss_avg)
                 curr_inner_running_loss_avg = 0
+
+        if validate:
+            with torch.no_grad():
+                model.eval()
+                test_batch_idx_tuple = torch.split(torch.from_numpy(np.random.permutation(np.arange(data.shape[0]))),
+                                                   batch_size)
+                true_estimations = 0
+                for test_batch_idx, test_selected_samples in enumerate(test_batch_idx_tuple):
+                    test_batch_data, test_batch_label = data[test_selected_samples], label[test_selected_samples]
+                    test_batch_data, test_batch_label = (torch.from_numpy(test_batch_data).to(torch.float32),
+                                                         torch.from_numpy(test_batch_label).to(torch.long))
+                    test_batch_data, test_batch_label = test_batch_data.to(device), test_batch_label.to(device)
+                    acc_logits = model(test_batch_data)
+                    true_estimations += torch.count_nonzero(test_batch_label == torch.argmax(acc_logits, dim=1))
+                print('trial: {}, epoch: {}, accuracy: {}'.format(outer_iter, epoch, true_estimations / data.shape[0]))
+                model.train()
 
     return (model, inner_running_loss, inner_running_loss_avg, num_of_joint, num_of_all_marginal,
             num_of_marginal_y_joint_xz, num_of_marginal_x_joint_yz)

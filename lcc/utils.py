@@ -47,30 +47,21 @@ def pol_mul_mod(first, second, prime):
     return resulting_pol
 
 
-def create_encoded_dataset(encoded_data_pol, encoded_label_pol, alpha):
-    encoded_dataset = np.empty((len(encoded_data_pol), 2))
+def create_encoded_dataset(encoded_data_pol, data_size, encoded_label_pol, alpha):
+    encoded_data = np.empty((len(encoded_data_pol), *data_size))
+    encoded_label = np.empty((len(encoded_label_pol), 1))
     for idx, (data_pol, label_pol) in enumerate(zip(encoded_data_pol, encoded_label_pol)):
-        encoded_dataset[idx][0] = data_pol(alpha)
-        encoded_dataset[idx][1] = label_pol(alpha)
-    return encoded_dataset
+        encoded_data[idx] = data_pol(alpha)
+        encoded_label[idx][0] = label_pol(alpha)
+    return encoded_data, encoded_label
 
 
-def calculate_gradient(encoded_dataset, curr_weight, p):
-    encoded_data = encoded_dataset[:, 0].reshape(-1, 1)
-    encoded_label = encoded_dataset[:, 1].reshape(-1, 1)
-
-    gradient = (encoded_label - encoded_data @ curr_weight) % p
-    gradient = (encoded_data.T @ gradient) % p
-    gradient = (-2 * gradient) % p
-    return gradient
-
-
-def calculate_gradient_samplewise(encoded_dataset, curr_weight, p):
+def calculate_gradient_samplewise(encoded_data, encoded_label, curr_weight, p):
     # g = -2(xy - x^2w)
-    gradient = np.empty(encoded_dataset.shape[0])
-    for idx, encoded_sample in enumerate(encoded_dataset):
-        data, label = encoded_sample[0], encoded_sample[1]
-        gradient[idx] = (label - data * curr_weight) % p
+    gradient = np.empty((encoded_data.shape[0], *curr_weight.shape))
+    for idx in range(encoded_data.shape[0]):
+        data, label = encoded_data[idx], encoded_label[idx]
+        gradient[idx] = (label - (data.T @ curr_weight)[0][0]) % p
         gradient[idx] = (data * gradient[idx]) % p
         gradient[idx] = (-2 * gradient[idx]) % p
     gradient = gradient.astype(int)

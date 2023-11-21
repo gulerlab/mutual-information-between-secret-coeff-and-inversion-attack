@@ -80,7 +80,7 @@ def create_knn_sampling_joint_cond_marginal_dataset(dataset, number_of_neighbors
     cond_marginal_label = np.ones(cond_marginal_data.shape[0])
 
     # joint dataset construction
-    joint_data = dataset
+    joint_data = np.concatenate([x_data, y_data, z_data], axis=1)
 
     ## joint data label
     joint_label = np.zeros(joint_data.shape[0])
@@ -111,7 +111,7 @@ def create_joint_marginal_dataset(dataset, x_idx, y_idx):
     marginal_label = np.ones(number_of_samples)
 
     # joint dataset construction
-    joint_data = dataset
+    joint_data = np.concatenate([x_data, y_data], axis=1)
 
     ## create labels
     joint_label = np.zeros(number_of_samples)
@@ -171,7 +171,7 @@ def create_multiclass_conditional_dataset(dataset, x_idx, y_idx, z_idx):
     marginal_x_joint_yz_label.fill(3)
 
     # joint dataset construction
-    joint_data = dataset
+    joint_data = np.concatenate([x_data, y_data, z_data], axis=1)
 
     ## create labels
     joint_label = np.zeros(number_of_samples)
