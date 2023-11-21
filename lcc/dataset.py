@@ -11,6 +11,7 @@ def create_lcc_dataset_k1_t1_scalar(prime, data_range, num_of_samples, weight):
                               priv_param)
 
 
+# TODO: we need to implement for K > 1
 def create_lcc_dataset(prime, data_range, num_of_samples, weight, feature_size, beta_arr, alpha_arr, para_param,
                        priv_param):
     number_of_required_clients = 2 * (para_param + priv_param - 1) + 1
