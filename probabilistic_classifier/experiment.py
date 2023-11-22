@@ -37,7 +37,7 @@ def midiff_experiment(prime, data_range, num_of_samples, weight, feature_size, b
         print('################################################################')
         model, inner_running_loss, inner_running_loss_avg, num_of_joint, num_of_marginal = train_binary_classifier_v2(
             data, label, num_input_features, hidden_size_arr, lr, num_of_inner_iteration, batch_size, outer_iter,
-            save_avg, print_progress)
+            save_avg=save_avg, print_progress=print_progress)
         first_outer_running_loss.append(inner_running_loss)
         first_outer_running_loss_avg.append(inner_running_loss_avg)
 
@@ -76,7 +76,7 @@ def midiff_experiment(prime, data_range, num_of_samples, weight, feature_size, b
         print('################################################################')
         model, inner_running_loss, inner_running_loss_avg, num_of_joint, num_of_marginal = train_binary_classifier_v2(
             data, label, num_input_features, hidden_size_arr, lr, num_of_inner_iteration, batch_size, outer_iter,
-            save_avg, print_progress)
+            save_avg=save_avg, print_progress=print_progress)
         second_outer_running_loss.append(inner_running_loss)
         second_outer_running_loss_avg.append(inner_running_loss_avg)
 
@@ -140,8 +140,8 @@ def multiclass_probabilistic_classifier_experiment(prime, data_range, num_of_sam
                                                                                                hidden_size_arr, lr,
                                                                                                num_of_inner_iteration,
                                                                                                batch_size, outer_iter,
-                                                                                               print_progress,
-                                                                                               save_avg)
+                                                                                               print_progress=print_progress,
+                                                                                               save_avg=save_avg)
         outer_running_loss.append(inner_running_loss)
         outer_running_loss_avg.append(inner_running_loss_avg)
 
