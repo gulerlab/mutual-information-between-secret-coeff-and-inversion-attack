@@ -143,7 +143,7 @@ def create_multiclass_conditional_dataset(dataset, x_idx, y_idx, z_idx):
     selected_x_idx, selected_y_idx, selected_z_idx = all_marginal
     ## concat data samples
     all_marginal_data = np.concatenate([x_data[selected_x_idx, :], y_data[selected_y_idx, :],
-                                        z_data[selected_y_idx, :]], axis=1)
+                                        z_data[selected_z_idx, :]], axis=1)
 
     ## create labels
     all_marginal_label = np.ones(number_of_samples)
