@@ -56,9 +56,11 @@ def train_binary_classifier(data, label, num_input_features, hidden_size_arr, lr
 
 
 def train_binary_classifier_v2(data, label, num_input_features, hidden_size_arr, lr,
-                               number_of_epoch, batch_size, outer_iter, save_avg=100, print_progress=True):
+                               number_of_epoch, batch_size, outer_iter, save_avg=100, print_progress=True, device=None):
     # the only difference is the samples are not randomly selected but all data are given to
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     num_output_features = 2
     model = ProbabilisticClassifier(num_input_features, hidden_size_arr, num_output_features).to(device)
     criterion = nn.BCEWithLogitsLoss()
@@ -107,8 +109,9 @@ def train_binary_classifier_v2(data, label, num_input_features, hidden_size_arr,
 
 def train_multiclass_classifier(data, label, num_input_features, hidden_size_arr, lr,
                                 number_of_epoch, batch_size, outer_iter, save_avg=100, print_progress=True,
-                                validate=False):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+                                validate=False, device=None):
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
     num_output_features = 4
     model = ProbabilisticClassifier(num_input_features, hidden_size_arr, num_output_features).to(device)
     criterion = nn.CrossEntropyLoss()
