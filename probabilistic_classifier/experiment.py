@@ -5,7 +5,7 @@ sys.path.append('..')
 
 from lcc.dataset import create_lcc_dataset
 from probabilistic_classifier.dataset import create_joint_marginal_dataset, create_multiclass_conditional_dataset
-from probabilistic_classifier.train import (train_binary_classifier_v2, train_multiclass_classifier,
+from probabilistic_classifier.train import (train_binary_classifier_v2, train_multiclass_classifier_v2,
                                             train_binary_classifier_v3)
 from probabilistic_classifier.estimate import (estimate_mi_for_binary_classification,
                                                estimate_mi_for_multiclass_classification)
@@ -118,7 +118,6 @@ def multiclass_probabilistic_classifier_experiment(prime, data_range, num_of_sam
                                                    hidden_size_arr, lr, num_of_outer_iteration, num_of_inner_iteration,
                                                    batch_size, save_avg=200, print_progress=True, return_loss=False,
                                                    device=None, load_data=None):
-
     if load_data is None:
         dataset = create_lcc_dataset(prime, data_range, num_of_samples, weight, feature_size, beta_arr, alpha_arr,
                                      para_param, priv_param)
@@ -130,11 +129,6 @@ def multiclass_probabilistic_classifier_experiment(prime, data_range, num_of_sam
     (joint_data, joint_label, all_marginal_data, all_marginal_label, marginal_y_joint_xz_data,
      marginal_y_joint_xz_label, marginal_x_joint_yz_data,
      marginal_x_joint_yz_label) = create_multiclass_conditional_dataset(dataset, x_idx, y_idx, z_idx)
-    data, label = np.concatenate(
-        [joint_data, all_marginal_data, marginal_y_joint_xz_data, marginal_x_joint_yz_data]), np.concatenate(
-        [joint_label, all_marginal_label, marginal_y_joint_xz_label, marginal_x_joint_yz_label])
-    randomize_idx = np.random.permutation(np.arange(4 * num_of_samples))
-    data, label = data[randomize_idx], label[randomize_idx]
 
     # train
     num_input_features = len(x_idx) + len(y_idx) + len(z_idx)
@@ -147,14 +141,22 @@ def multiclass_probabilistic_classifier_experiment(prime, data_range, num_of_sam
     for outer_iter in range(num_of_outer_iteration):
         print('################################################################')
         (model, inner_running_loss, inner_running_loss_avg, num_of_joint, num_of_all_marginal,
-         num_of_marginal_y_joint_xz, num_of_marginal_x_joint_yz) = train_multiclass_classifier(data, label,
-                                                                                               num_input_features,
-                                                                                               hidden_size_arr, lr,
-                                                                                               num_of_inner_iteration,
-                                                                                               batch_size, outer_iter,
-                                                                                               print_progress=print_progress,
-                                                                                               save_avg=save_avg,
-                                                                                               device=device)
+         num_of_marginal_y_joint_xz, num_of_marginal_x_joint_yz) = train_multiclass_classifier_v2(joint_data,
+                                                                                                  joint_label,
+                                                                                                  all_marginal_data,
+                                                                                                  all_marginal_label,
+                                                                                                  marginal_x_joint_yz_data,
+                                                                                                  marginal_x_joint_yz_label,
+                                                                                                  marginal_y_joint_xz_data,
+                                                                                                  marginal_y_joint_xz_label,
+                                                                                                  num_input_features,
+                                                                                                  hidden_size_arr, lr,
+                                                                                                  num_of_inner_iteration,
+                                                                                                  batch_size,
+                                                                                                  outer_iter,
+                                                                                                  print_progress=print_progress,
+                                                                                                  save_avg=save_avg,
+                                                                                                  device=device)
         outer_running_loss.append(inner_running_loss)
         outer_running_loss_avg.append(inner_running_loss_avg)
 
